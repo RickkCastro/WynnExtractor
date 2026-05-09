@@ -27,6 +27,20 @@ async function run() {
             'Shocking Aura',
             'Flaming Tongue'
         ].forEach(name => assert.ok(names.includes(name), `Missing selected ability: ${name}`));
+
+        const totem = build.abilityTree.abilities.find(ability => ability.name === 'Totem');
+        assert.deepStrictEqual(totem.descriptionParsed.clickCombo, ['RIGHT', 'LEFT', 'RIGHT']);
+        assert.strictEqual(totem.descriptionParsed.manaCost, 30);
+        assert.strictEqual(totem.descriptionParsed.totalDamagePct, 12);
+        assert.strictEqual(totem.descriptionParsed.durationSeconds, 30);
+        assert.strictEqual(totem.descriptionParsed.areaOfEffect.blocks, 8);
+
+        const weaponTooltip = build.itemTooltips.weapon;
+        assert.strictEqual(weaponTooltip._parsed['Combat Level Min'].value, 96);
+        assert.strictEqual(weaponTooltip._parsed['Spell Damage %'].min.value, 9);
+        assert.strictEqual(weaponTooltip._parsed['Spell Damage %'].max.value, 39);
+
+        assert.strictEqual(typeof build.identifications.sdPct.parsedValue.value, 'number');
     } finally {
         if (fs.existsSync(outputPath)) {
             fs.unlinkSync(outputPath);

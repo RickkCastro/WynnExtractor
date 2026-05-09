@@ -198,6 +198,87 @@ async function extractWynnBuild(buildUrl, options = {}) {
             return el ? (el.value?.trim() || el.innerText?.trim() || '') : '';
         };
 
+        const parseNumericScalar = (rawValue) => {
+            if (rawValue === undefined || rawValue === null) return null;
+            const raw = String(rawValue).trim();
+            const match = raw.match(/^([+-]?\d+(?:\.\d+)?)(.*)$/);
+            if (!match) return null;
+
+            return {
+                raw,
+                value: Number(match[1]),
+                unit: match[2].trim() || null
+            };
+        };
+
+        const parseNumericValue = (rawValue) => {
+            if (rawValue === undefined || rawValue === null) return null;
+
+            if (typeof rawValue === 'object' && 'min' in rawValue && 'max' in rawValue) {
+                const min = parseNumericScalar(rawValue.min);
+                const max = parseNumericScalar(rawValue.max);
+                return min || max ? { min, max } : null;
+            }
+
+            const raw = String(rawValue).trim();
+            const range = raw.match(/^([+-]?\d+(?:\.\d+)?)([^-\d]*?)\s*-\s*([+-]?\d+(?:\.\d+)?)(.*)$/);
+            if (range) {
+                const minUnit = range[2].trim() || range[4].trim() || null;
+                const maxUnit = range[4].trim() || minUnit;
+                return {
+                    raw,
+                    min: { raw: `${range[1]}${minUnit || ''}`, value: Number(range[1]), unit: minUnit },
+                    max: { raw: `${range[3]}${maxUnit || ''}`, value: Number(range[3]), unit: maxUnit }
+                };
+            }
+
+            return parseNumericScalar(raw);
+        };
+
+        const parseAbilityDescription = (description) => {
+            if (!description) return null;
+
+            const parsed = {};
+            const combo = description.match(/Click Combo:\s*([A-Z-]+)/);
+            if (combo) parsed.clickCombo = combo[1].split('-');
+
+            const manaCost = description.match(/Mana Cost:\s*([+-]?\d+(?:\.\d+)?)/);
+            if (manaCost) parsed.manaCost = Number(manaCost[1]);
+
+            const totalDamage = description.match(/Total Damage:\s*([+-]?\d+(?:\.\d+)?)%/);
+            if (totalDamage) parsed.totalDamagePct = Number(totalDamage[1]);
+
+            const duration = description.match(/Duration:\s*([+-]?\d+(?:\.\d+)?)s/);
+            if (duration) parsed.durationSeconds = Number(duration[1]);
+
+            const range = description.match(/Range:\s*([+-]?\d+(?:\.\d+)?)\s*Blocks?/);
+            if (range) parsed.rangeBlocks = Number(range[1]);
+
+            const area = description.match(/Area of Effect:\s*([+-]?\d+(?:\.\d+)?)\s*Blocks?(?:\s*\(([^)]+)\))?/);
+            if (area) {
+                parsed.areaOfEffect = {
+                    blocks: Number(area[1]),
+                    shape: area[2] || null
+                };
+            }
+
+            const manaCostReduction = description.match(/Reduce the Mana cost of .+? by ([+-]?\d+(?:\.\d+)?)/i);
+            if (manaCostReduction) parsed.manaCostReduction = Number(manaCostReduction[1]);
+
+            const damageBreakdown = [];
+            const damageRegex = /\((Damage|Earth|Thunder|Water|Fire|Air):\s*([+-]?\d+(?:\.\d+)?)%\)/g;
+            let damageMatch;
+            while ((damageMatch = damageRegex.exec(description)) !== null) {
+                damageBreakdown.push({
+                    type: damageMatch[1],
+                    percent: Number(damageMatch[2])
+                });
+            }
+            if (damageBreakdown.length > 0) parsed.damageBreakdown = damageBreakdown;
+
+            return Object.keys(parsed).length > 0 ? parsed : null;
+        };
+
         /**
          * Extracts the rarity class from an equipment input element.
          * WynnBuilder embeds rarity as a CSS class: Mythic, Legendary, Rare, Fabled, etc.
@@ -477,6 +558,7 @@ async function extractWynnBuild(buildUrl, options = {}) {
                         icon: ability.display?.icon || null
                     },
                     description: desc || null,
+                    descriptionParsed: parseAbilityDescription(desc),
                     base_abil: ability.base_abil || null,
                     properties: ability.properties || null
                 };
@@ -609,6 +691,12 @@ async function extractWynnBuild(buildUrl, options = {}) {
             });
 
             if (parsed._raw.length > 1) {
+                parsed._parsed = {};
+                Object.entries(parsed).forEach(([key, value]) => {
+                    if (key.startsWith('_')) return;
+                    const numeric = parseNumericValue(value);
+                    if (numeric) parsed._parsed[key] = numeric;
+                });
                 itemTooltips[slot] = parsed;
             }
         });
@@ -634,7 +722,9 @@ async function extractWynnBuild(buildUrl, options = {}) {
             if (input) {
                 editableIds[id] = {
                     value: input.value?.trim() || '0',
-                    base: base ? getText(base) : undefined
+                    base: base ? getText(base) : undefined,
+                    parsedValue: parseNumericValue(input.value?.trim() || '0'),
+                    parsedBase: base ? parseNumericValue(getText(base)) : undefined
                 };
             }
         });

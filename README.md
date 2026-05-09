@@ -71,7 +71,7 @@ After loading the virtual browser and completing all steps, the script will repo
    📄 File: build-wynncraft.json
 ```
 
-The `build-wynncraft.json` file will be generated or updated in your local directory unless `--out` is provided. The JSON includes `meta.schemaVersion`, `meta.validation`, and `abilityTree.selectedAbilityIds` for easier downstream validation.
+The `build-wynncraft.json` file will be generated or updated in your local directory unless `--out` is provided. The JSON includes `meta.schemaVersion`, `meta.validation`, `abilityTree.selectedAbilityIds`, `abilityTree.abilities[].descriptionParsed`, numeric `identifications.*.parsedValue`, and tooltip `_parsed` maps for easier downstream validation.
 
 ### 5. Testing
 Run the syntax and integration checks:
@@ -94,7 +94,8 @@ To successfully extract this data, Puppeteer is configured to:
 * Always close the browser with a `finally` block and, on extraction failure, save debug HTML, screenshot, and error text into the configured debug directory.
 
 ## Next Steps (Contribution Ideas)
+Completed:
 * Batch Extraction (Lists/multiple URLs).
 * Robust Error Handling (Timeouts/Fallbacks).
-* Parse raw strings with numeric values into Integers within Identification keys (e.g., `"Health": "4100"` to `"Health": 4100`).
-* Parse Ability "Description" strings into structured objects (e.g., `"Mana Cost: 30"` to `{manaCost: 30}`).
+* Parse raw strings with numeric values into structured fields (e.g., `"Health": "4100"` to `{ "value": 4100 }`).
+* Parse Ability "Description" strings into structured objects (e.g., `"Mana Cost: 30"` to `{ "manaCost": 30 }`).
