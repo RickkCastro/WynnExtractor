@@ -50,12 +50,12 @@ node app.js "https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEam
 ### 4. Understanding the Output
 After loading the virtual browser and completing all steps, the script will report the total items captured in the terminal:
 ```
-✅ Extração completa!
-   📦 9 equipamentos
-   📊 35 stats detalhados
-   🔮 9 magias/ataques
-   🌳 17/93 habilidades (ativas/total)
-   📄 Arquivo: build-wynncraft.json
+✅ Extraction complete!
+   📦 9 equipments
+   📊 40 detailed stats
+   🔮 6 spells/attacks
+   🌳 9/90 abilities (active/total)
+   📄 File: build-wynncraft.json
 ```
 
 The `build-wynncraft.json` file will be generated or updated in your local directory (weighing around 120KB), with the data organized in a hierarchical JSON ready to be used by other applications.

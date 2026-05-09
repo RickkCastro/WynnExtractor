@@ -18,16 +18,16 @@ const fs = require('fs');
  */
 
 async function extractWynnBuild(buildUrl) {
-    console.log('🚀 Iniciando o navegador...');
+    console.log('🚀 Starting browser...');
     const browser = await puppeteer.launch({ headless: "new" });
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
 
-    console.log(`🌐 Acessando: ${buildUrl}`);
-    console.log('   Aguardando downloads dos bancos de dados internos (networkidle0)...');
+    console.log(`🌐 Accessing: ${buildUrl}`);
+    console.log('   Waiting for internal database downloads (networkidle0)...');
     await page.goto(buildUrl, { waitUntil: 'networkidle0', timeout: 90000 });
 
-    console.log('⏳ Aguardando decodificação da hash e renderização completa...');
+    console.log('⏳ Waiting for hash decoding and complete rendering...');
     // Wait for the build to fully render (skill points, ability tree, spells, etc.)
     await page.waitForFunction(() => {
         const weaponInput = document.getElementById('weapon-choice');
@@ -45,7 +45,7 @@ async function extractWynnBuild(buildUrl) {
     await new Promise(r => setTimeout(r, 500));
 
     // Force-show all spell detail sections and item tooltips
-    console.log('📖 Expandindo detalhes de spells e tooltips...');
+    console.log('📖 Expanding spell details and tooltips...');
     await page.evaluate(() => {
         // Force all spell detail panels visible (they use display:none when collapsed)
         for (let i = 0; i <= 15; i++) {
@@ -61,7 +61,7 @@ async function extractWynnBuild(buildUrl) {
     });
     await new Promise(r => setTimeout(r, 500));
 
-    console.log('🔍 Extraindo dados completos...');
+    console.log('🔍 Extracting comprehensive data...');
 
     const buildData = await page.evaluate(() => {
         // ─── HELPERS ────────────────────────────────────────────────────
@@ -531,7 +531,7 @@ async function extractWynnBuild(buildUrl) {
         };
     });
 
-    console.log('💾 Gerando JSON...');
+    console.log('💾 Generating JSON...');
     fs.writeFileSync('build-wynncraft.json', JSON.stringify(buildData, null, 4));
 
     // Print summary
@@ -540,12 +540,12 @@ async function extractWynnBuild(buildUrl) {
     const totalAbil = buildData.abilityTree.totalAbilities || 0;
     const activeAbil = buildData.abilityTree.activeCount || 0;
     const statCount = Object.keys(buildData.stats.detailed || {}).length;
-    console.log(`✅ Extração completa!`);
-    console.log(`   📦 ${equipCount} equipamentos`);
-    console.log(`   📊 ${statCount} stats detalhados`);
-    console.log(`   🔮 ${spellCount} magias/ataques`);
-    console.log(`   🌳 ${activeAbil}/${totalAbil} habilidades (ativas/total)`);
-    console.log(`   📄 Arquivo: build-wynncraft.json`);
+    console.log(`✅ Extraction complete!`);
+    console.log(`   📦 ${equipCount} equipments`);
+    console.log(`   📊 ${statCount} detailed stats`);
+    console.log(`   🔮 ${spellCount} spells/attacks`);
+    console.log(`   🌳 ${activeAbil}/${totalAbil} abilities (active/total)`);
+    console.log(`   📄 File: build-wynncraft.json`);
 
     await browser.close();
 }
@@ -556,12 +556,12 @@ async function extractWynnBuild(buildUrl) {
 const url = process.argv[2];
 
 if (!url) {
-    console.error('❌ Erro: Nenhuma URL fornecida.');
-    console.error('Uso: node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_AQUI"');
+    console.error('❌ Error: No URL provided.');
+    console.error('Usage: node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE"');
     process.exit(1);
 }
 
 extractWynnBuild(url).catch(err => {
-    console.error('❌ Erro na extração:', err.message);
+    console.error('❌ Extraction error:', err.message);
     process.exit(1);
 });
