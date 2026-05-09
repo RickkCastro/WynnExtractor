@@ -115,3 +115,4 @@ The ability tree extraction uses WynnBuilder's own tree traversal decoder, so it
 - UI improvements
 - Error messages in the UI
 - Add an AI agent to analyze and explain the build in text
+- Convert UI to React/Vite
