@@ -84,25 +84,60 @@ The integration test extracts the default build URL and verifies equipment, abil
 The batch test uses `test/fixtures/sample-urls.txt`, including both beta and non-beta WynnBuilder URLs.
 
 ## Web UI
-The static interface lives in `docs/index.html` and is ready for GitHub Pages. It lets users paste a WynnBuilder link, validates the URL, calls an extraction API, and downloads the generated JSON.
+The web interface lives in `docs/index.html`. It lets users paste a WynnBuilder link, validates the URL, calls the extraction API, and downloads the generated JSON.
 
-GitHub Pages only hosts static files, so the Puppeteer extraction must run in a separate Node API. For local use:
+For local use:
 
 ```bash
 npm run api
 ```
 
-Then open `docs/index.html` or publish the `docs/` folder with GitHub Pages. The default API endpoint is:
+Then open `docs/index.html`. When opened from a deployed site, the default API endpoint is same-origin `/api/extract`. When opened as a local file, it falls back to:
 
 ```text
 http://localhost:3000/extract
 ```
 
-For a public deployment, host `server.js` on a Node-capable platform and set the API endpoint in the page. You can restrict browser origins with:
+## Vercel Deployment
+This project is ready to deploy as a single Vercel app:
+
+* `docs/index.html` is served as the homepage.
+* `api/extract.js` runs the Puppeteer scraper.
+* `api/health.js` exposes a small health check.
+* `vercel.json` enables Fluid Compute and gives the extraction function more time.
+* Vercel uses `@sparticuz/chromium` + `puppeteer-core`; local development keeps using full `puppeteer`.
+
+Steps:
 
 ```bash
-ALLOWED_ORIGINS=https://your-user.github.io npm run api
+npm install
+npm test
+npm i -g vercel
+vercel login
+vercel
+vercel --prod
 ```
+
+In the Vercel import screen, keep the default project settings. The app does not need a build command. After deploy, open the Vercel URL and the page will call `/api/extract` automatically.
+
+Recommended Vercel settings:
+
+```text
+Framework Preset: Other
+Build Command: empty
+Output Directory: empty
+Install Command: from vercel.json
+```
+
+The configured install command skips Puppeteer's local Chrome download during Vercel builds because the serverless function uses `@sparticuz/chromium`.
+
+Optional production hardening:
+
+```bash
+ALLOWED_ORIGINS=https://your-project.vercel.app npm run api
+```
+
+For Vercel, configure environment variables in the project dashboard if you add origin restrictions later.
 
 ## Scraper Technical Details
 Because WynnBuilder represents the build state by **decoding a Base64 encoded BitVector hash**, all of the "State" exists in the DOM and dynamic JS scripts (not in a clean JSON API).

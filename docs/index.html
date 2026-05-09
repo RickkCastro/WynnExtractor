@@ -315,7 +315,7 @@
                     <button class="secondary" id="sample" type="button">Usar exemplo</button>
                 </div>
 
-                <div id="message" class="message">A API padrao local e <code>http://localhost:3000/extract</code>. Em GitHub Pages, publique tambem uma API Node para o Puppeteer.</div>
+                <div id="message" class="message">Na Vercel, a API roda automaticamente em <code>/api/extract</code>.</div>
 
                 <div class="summary" aria-label="Resumo">
                     <div class="metric"><span>Classe</span><strong id="classMetric">-</strong></div>
@@ -340,7 +340,9 @@
 
     <script>
         const DEFAULT_BUILD_URL = 'https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEamWecKS230q-Kz7sNAI50';
-        const DEFAULT_API_URL = 'http://localhost:3000/extract';
+        const DEFAULT_API_URL = location.protocol === 'file:'
+            ? 'http://localhost:3000/extract'
+            : `${location.origin}/api/extract`;
 
         const buildUrlInput = document.getElementById('buildUrl');
         const apiUrlInput = document.getElementById('apiUrl');

@@ -1,4 +1,3 @@
-const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
@@ -124,6 +123,24 @@ async function saveDebugArtifacts(page, debugDir, error) {
     console.error(`Debug artifacts saved to: ${resolvedDebugDir}`);
 }
 
+async function launchBrowser() {
+    if (process.env.VERCEL === '1' || process.env.WYNNEXTRACTOR_SERVERLESS === '1') {
+        const chromium = require('@sparticuz/chromium');
+        const puppeteerCore = require('puppeteer-core');
+
+        return puppeteerCore.launch({
+            args: chromium.args,
+            defaultViewport: { width: 1920, height: 1080 },
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless
+        });
+    }
+
+    const localPuppeteerPackage = 'puppeteer';
+    const puppeteer = require(localPuppeteerPackage);
+    return puppeteer.launch({ headless: "new" });
+}
+
 /**
  * WynnBuilder Beta — Comprehensive Build Extractor
  * 
@@ -146,7 +163,7 @@ async function extractWynnBuild(buildUrl, options = {}) {
 
     try {
     console.log('🚀 Starting browser...');
-    browser = await puppeteer.launch({ headless: "new" });
+    browser = await launchBrowser();
     page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
 

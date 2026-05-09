@@ -9,13 +9,15 @@
     "test": "npm run test:syntax && npm run test:integration && npm run test:batch",
     "test:batch": "node test/batch.test.js",
     "test:integration": "node test/integration.test.js",
-    "test:syntax": "node --check app.js && node --check server.js && node --check test/integration.test.js && node --check test/batch.test.js"
+    "test:syntax": "node --check app.js && node --check server.js && node --check api/extract.js && node --check api/health.js && node --check test/integration.test.js && node --check test/batch.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "puppeteer": "^24.43.0"
+    "@sparticuz/chromium": "^148.0.0",
+    "puppeteer": "^24.43.0",
+    "puppeteer-core": "^24.43.0"
   }
 }

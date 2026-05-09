@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "PUPPETEER_SKIP_DOWNLOAD=1 npm install",
+  "fluid": true,
+  "functions": {
+    "api/extract.js": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/docs/index.html"
+    }
+  ]
+}
