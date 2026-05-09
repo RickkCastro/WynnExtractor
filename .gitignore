@@ -51,5 +51,3 @@ Prompt.md
 debug/
 build-outputs/
 test/tmp-*.json
-
-.vercel
