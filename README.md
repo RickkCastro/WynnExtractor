@@ -39,13 +39,22 @@ npm install
 ```
 
 ### 3. Extracting a Build
-Run the main script `node app.js`, **passing the full URL** containing the desired Wynnbuilder Hash **in quotes**:
+Run the main script `node app.js`, passing the full URL containing the desired Wynnbuilder Hash in quotes:
 
 ```bash
 node app.js "https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEamWecKS230q-Kz7sNAI50"
 ```
 
-> **Note:** If you don't provide a URL, the script will throw an error explaining the correct usage.
+If no URL is provided, the extractor uses the default test build URL.
+
+Useful options:
+
+```bash
+node app.js --out output/build.json
+node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE" --out output/build.json
+node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE" --debug-dir debug
+node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE" --no-debug
+```
 
 ### 4. Understanding the Output
 After loading the virtual browser and completing all steps, the script will report the total items captured in the terminal:
@@ -58,7 +67,7 @@ After loading the virtual browser and completing all steps, the script will repo
    📄 File: build-wynncraft.json
 ```
 
-The `build-wynncraft.json` file will be generated or updated in your local directory (weighing around 120KB), with the data organized in a hierarchical JSON ready to be used by other applications.
+The `build-wynncraft.json` file will be generated or updated in your local directory unless `--out` is provided. The JSON includes `meta.schemaVersion`, `meta.validation`, and `abilityTree.selectedAbilityIds` for easier downstream validation.
 
 ## Scraper Technical Details
 Because WynnBuilder represents the build state by **decoding a Base64 encoded BitVector hash**, all of the "State" exists in the DOM and dynamic JS scripts (not in a clean JSON API).
@@ -67,7 +76,8 @@ To successfully extract this data, Puppeteer is configured to:
 * Wait for `networkidle0` alongside an extra timer and evaluate if key elements have rendered.
 * Force visibility (`display: block`) via CSS injection for dozens of floating tooltips (items and spells) that are usually only loaded when the user hovers over them.
 * When parsing identifications where hidden spans (min/max/base) are structured in a 3-column CSS grid, the scraper iterates over `children.textContent` of each item, which works much better on hidden CSS than conventional `innerText`.
-* Use base objects (like `ATREES`) generated in real-time by the decoding process to map and cross-reference the Tree Vector bits, generating a highly accurate representation of the Ability Tree.
+* Use base objects (like `ATREES`) and WynnBuilder's own `decodeAtree` traversal to capture the selected Ability Tree nodes, including nodes that do not appear in the merged "Active Abilities" panel.
+* Always close the browser with a `finally` block and, on extraction failure, save debug HTML, screenshot, and error text into the configured debug directory.
 
 ## Next Steps (Contribution Ideas)
 * Batch Extraction (Lists/multiple URLs).

@@ -1,5 +1,105 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const path = require('path');
+
+const DEFAULT_BUILD_URL = 'https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEamWecKS230q-Kz7sNAI50';
+const DEFAULT_OUTPUT_PATH = 'build-wynncraft.json';
+const DEFAULT_DEBUG_DIR = 'debug';
+
+function parseCliArgs(argv) {
+    const options = {
+        buildUrl: null,
+        outputPath: DEFAULT_OUTPUT_PATH,
+        debugDir: DEFAULT_DEBUG_DIR,
+        debugOnError: true
+    };
+
+    const readOptionValue = (name, index) => {
+        const value = argv[index + 1];
+        if (!value || value.startsWith('--')) {
+            throw new Error(`Missing value for ${name}.`);
+        }
+        return value;
+    };
+
+    for (let i = 0; i < argv.length; i++) {
+        const arg = argv[i];
+        if (arg === '--out' || arg === '-o') {
+            options.outputPath = readOptionValue(arg, i);
+            i++;
+        } else if (arg === '--debug-dir') {
+            options.debugDir = readOptionValue(arg, i);
+            i++;
+        } else if (arg === '--no-debug') {
+            options.debugOnError = false;
+        } else if (arg === '--help' || arg === '-h') {
+            options.help = true;
+        } else if (arg.startsWith('-')) {
+            throw new Error(`Unknown argument: ${arg}`);
+        } else if (!options.buildUrl) {
+            options.buildUrl = arg;
+        } else {
+            throw new Error(`Unknown argument: ${arg}`);
+        }
+    }
+
+    options.buildUrl = options.buildUrl || DEFAULT_BUILD_URL;
+    return options;
+}
+
+function printUsage() {
+    console.log('Usage: node app.js [BUILD_URL] [--out output.json] [--debug-dir debug] [--no-debug]');
+    console.log(`Default BUILD_URL: ${DEFAULT_BUILD_URL}`);
+}
+
+function validateBuildData(buildData) {
+    const warnings = [];
+    const equipmentCount = Object.values(buildData.equipment || {}).filter(Boolean).length;
+    const spellCount = Object.keys(buildData.spells || {}).length;
+    const detailedStatCount = Object.keys(buildData.stats?.detailed || {}).length;
+    const abilityTree = buildData.abilityTree || {};
+    const abilityCount = abilityTree.abilities?.length || 0;
+
+    if (equipmentCount < 9) warnings.push(`Expected 9 equipment slots, found ${equipmentCount}.`);
+    if (!buildData.level) warnings.push('Player level was not extracted.');
+    if (detailedStatCount < 10) warnings.push(`Detailed stats look incomplete (${detailedStatCount} entries).`);
+    if (spellCount === 0) warnings.push('No spells or attacks were extracted.');
+    if (!abilityTree.playerClass) warnings.push('Ability tree class was not detected.');
+    if ((abilityTree.activeCount || 0) === 0) warnings.push('No selected ability tree nodes were extracted.');
+    if (abilityTree.activeCount !== undefined && abilityTree.activeCount !== abilityCount) {
+        warnings.push(`Ability count mismatch: activeCount=${abilityTree.activeCount}, abilities.length=${abilityCount}.`);
+    }
+
+    return {
+        ok: warnings.length === 0,
+        warnings
+    };
+}
+
+async function saveDebugArtifacts(page, debugDir, error) {
+    const resolvedDebugDir = path.resolve(debugDir || DEFAULT_DEBUG_DIR);
+    fs.mkdirSync(resolvedDebugDir, { recursive: true });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const htmlPath = path.join(resolvedDebugDir, `error-${timestamp}.html`);
+    const screenshotPath = path.join(resolvedDebugDir, `error-${timestamp}.png`);
+    const errorPath = path.join(resolvedDebugDir, `error-${timestamp}.txt`);
+
+    try {
+        fs.writeFileSync(htmlPath, await page.content(), 'utf8');
+    } catch(e) {
+        // Ignore debug capture failures; the original extraction error matters more.
+    }
+
+    try {
+        await page.screenshot({ path: screenshotPath, fullPage: true });
+    } catch(e) {
+        // Ignore debug capture failures; the original extraction error matters more.
+    }
+
+    fs.writeFileSync(errorPath, `${error.stack || error.message || error}\n`, 'utf8');
+    console.error(`Debug artifacts saved to: ${resolvedDebugDir}`);
+}
 
 /**
  * WynnBuilder Beta — Comprehensive Build Extractor
@@ -17,10 +117,14 @@ const fs = require('fs');
  * - Powder Specials & Poison Damage
  */
 
-async function extractWynnBuild(buildUrl) {
+async function extractWynnBuild(buildUrl, options = {}) {
+    let browser;
+    let page;
+
+    try {
     console.log('🚀 Starting browser...');
-    const browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
+    browser = await puppeteer.launch({ headless: "new" });
+    page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
 
     console.log(`🌐 Accessing: ${buildUrl}`);
@@ -520,7 +624,8 @@ async function extractWynnBuild(buildUrl) {
                 sourceUrl: window.location.href,
                 buildHash: window.location.hash,
                 timestamp: new Date().toISOString(),
-                extractorVersion: '2.0.0'
+                extractorVersion: '2.0.0',
+                schemaVersion: '1.1.0'
             },
             level,
             equipment,
@@ -536,6 +641,7 @@ async function extractWynnBuild(buildUrl) {
             abilityTree: {
                 apUsed: apCost,
                 apCap: apCap,
+                selectedAbilityIds: abilityTree.abilities?.map(a => a.id) || [],
                 ...abilityTree
             },
             activeBoosts,
@@ -552,7 +658,17 @@ async function extractWynnBuild(buildUrl) {
     });
 
     console.log('💾 Generating JSON...');
-    fs.writeFileSync('build-wynncraft.json', JSON.stringify(buildData, null, 4));
+    const validation = validateBuildData(buildData);
+    buildData.meta.validation = validation;
+    if (!validation.ok) {
+        console.warn('Warning: extraction completed with validation warnings:');
+        validation.warnings.forEach(warning => console.warn(`   - ${warning}`));
+    }
+
+    const outputPath = options.outputPath || DEFAULT_OUTPUT_PATH;
+    const resolvedOutputPath = path.resolve(outputPath);
+    fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
+    fs.writeFileSync(resolvedOutputPath, JSON.stringify(buildData, null, 4));
 
     // Print summary
     const equipCount = Object.values(buildData.equipment).filter(Boolean).length;
@@ -565,23 +681,39 @@ async function extractWynnBuild(buildUrl) {
     console.log(`   📊 ${statCount} detailed stats`);
     console.log(`   🔮 ${spellCount} spells/attacks`);
     console.log(`   🌳 ${activeAbil}/${totalAbil} abilities (active/total)`);
-    console.log(`   📄 File: build-wynncraft.json`);
+    console.log(`   📄 File: ${resolvedOutputPath}`);
 
-    await browser.close();
+    return buildData;
+    } catch (err) {
+        if (page && options.debugOnError !== false) {
+            await saveDebugArtifacts(page, options.debugDir || DEFAULT_DEBUG_DIR, err);
+        }
+        throw err;
+    } finally {
+        if (browser) {
+            await browser.close().catch(() => {});
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // Entry Point — expects CLI argument
 // ═══════════════════════════════════════════════════════════════════════
-const url = process.argv[2];
-
-if (!url) {
-    console.error('❌ Error: No URL provided.');
-    console.error('Usage: node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE"');
+let cliOptions;
+try {
+    cliOptions = parseCliArgs(process.argv.slice(2));
+} catch (err) {
+    console.error('❌ Argument error:', err.message);
+    printUsage();
     process.exit(1);
 }
 
-extractWynnBuild(url).catch(err => {
+if (cliOptions.help) {
+    printUsage();
+    process.exit(0);
+}
+
+extractWynnBuild(cliOptions.buildUrl, cliOptions).catch(err => {
     console.error('❌ Extraction error:', err.message);
     process.exit(1);
 });
