@@ -109,3 +109,9 @@ Local CLI extraction uses full `puppeteer`. Vercel extraction uses `@sparticuz/c
 WynnBuilder stores the build in a URL hash and reconstructs the page client-side. WynnExtractor waits for the rendered UI, forces hidden tooltip/spell panels visible, and reads both DOM content and WynnBuilder globals such as `ATREES`, `atree_data`, and `decodeAtree`.
 
 The ability tree extraction uses WynnBuilder's own tree traversal decoder, so it captures selected nodes even when they do not appear in the merged "Active Abilities" panel.
+
+## Next Steps
+
+- UI improvements
+- Error messages in the UI
+- Add an AI agent to analyze and explain the build in text
