@@ -52,9 +52,13 @@ Useful options:
 ```bash
 node app.js --out output/build.json
 node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE" --out output/build.json
+node app.js --batch urls.txt --out build-outputs
+node app.js --batch urls.txt --out results.json
 node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE" --debug-dir debug
 node app.js "https://wynnbuilder-beta.github.io/builder/#HASH_HERE" --no-debug
 ```
+
+Batch files are plain text files with one build URL per line. Empty lines and lines starting with `#` are ignored. When `--out` points to a directory, each build is written as an individual JSON file and a `manifest.json` is generated. When `--out` ends in `.json`, the extractor writes one combined JSON document.
 
 ### 4. Understanding the Output
 After loading the virtual browser and completing all steps, the script will report the total items captured in the terminal:
@@ -68,6 +72,15 @@ After loading the virtual browser and completing all steps, the script will repo
 ```
 
 The `build-wynncraft.json` file will be generated or updated in your local directory unless `--out` is provided. The JSON includes `meta.schemaVersion`, `meta.validation`, and `abilityTree.selectedAbilityIds` for easier downstream validation.
+
+### 5. Testing
+Run the syntax and integration checks:
+
+```bash
+npm test
+```
+
+The integration test extracts the default build URL and verifies equipment, ability tree counts, selected ability names, and validation metadata.
 
 ## Scraper Technical Details
 Because WynnBuilder represents the build state by **decoding a Base64 encoded BitVector hash**, all of the "State" exists in the DOM and dynamic JS scripts (not in a clean JSON API).

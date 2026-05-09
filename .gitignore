@@ -49,3 +49,5 @@ build-wynncraft.json
 build-wynncraft-test.json
 Prompt.md
 debug/
+build-outputs/
+test/tmp-*.json

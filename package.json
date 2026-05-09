@@ -5,7 +5,9 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "node --check app.js"
+    "test": "npm run test:syntax && npm run test:integration",
+    "test:integration": "node test/integration.test.js",
+    "test:syntax": "node --check app.js && node --check test/integration.test.js"
   },
   "keywords": [],
   "author": "",

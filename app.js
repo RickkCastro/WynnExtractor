@@ -4,12 +4,14 @@ const path = require('path');
 
 const DEFAULT_BUILD_URL = 'https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEamWecKS230q-Kz7sNAI50';
 const DEFAULT_OUTPUT_PATH = 'build-wynncraft.json';
+const DEFAULT_BATCH_OUTPUT_DIR = 'build-outputs';
 const DEFAULT_DEBUG_DIR = 'debug';
 
 function parseCliArgs(argv) {
     const options = {
         buildUrl: null,
         outputPath: DEFAULT_OUTPUT_PATH,
+        batchPath: null,
         debugDir: DEFAULT_DEBUG_DIR,
         debugOnError: true
     };
@@ -27,6 +29,9 @@ function parseCliArgs(argv) {
         if (arg === '--out' || arg === '-o') {
             options.outputPath = readOptionValue(arg, i);
             i++;
+        } else if (arg === '--batch') {
+            options.batchPath = readOptionValue(arg, i);
+            i++;
         } else if (arg === '--debug-dir') {
             options.debugDir = readOptionValue(arg, i);
             i++;
@@ -43,13 +48,31 @@ function parseCliArgs(argv) {
         }
     }
 
-    options.buildUrl = options.buildUrl || DEFAULT_BUILD_URL;
+    if (options.batchPath && options.buildUrl) {
+        throw new Error('Use either a single BUILD_URL or --batch, not both.');
+    }
+
+    options.buildUrl = options.buildUrl || (options.batchPath ? null : DEFAULT_BUILD_URL);
     return options;
 }
 
 function printUsage() {
     console.log('Usage: node app.js [BUILD_URL] [--out output.json] [--debug-dir debug] [--no-debug]');
+    console.log('       node app.js --batch urls.txt [--out build-outputs|results.json]');
     console.log(`Default BUILD_URL: ${DEFAULT_BUILD_URL}`);
+}
+
+function readBatchUrls(batchPath) {
+    const resolvedBatchPath = path.resolve(batchPath);
+    return fs.readFileSync(resolvedBatchPath, 'utf8')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'));
+}
+
+function getSafeOutputName(url, index) {
+    const hash = new URL(url).hash.replace(/^#/, '') || `build-${index + 1}`;
+    return `${String(index + 1).padStart(3, '0')}-${hash.slice(0, 24)}.json`;
 }
 
 function validateBuildData(buildData) {
@@ -665,10 +688,13 @@ async function extractWynnBuild(buildUrl, options = {}) {
         validation.warnings.forEach(warning => console.warn(`   - ${warning}`));
     }
 
-    const outputPath = options.outputPath || DEFAULT_OUTPUT_PATH;
-    const resolvedOutputPath = path.resolve(outputPath);
-    fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
-    fs.writeFileSync(resolvedOutputPath, JSON.stringify(buildData, null, 4));
+    let resolvedOutputPath = null;
+    if (options.writeOutput !== false) {
+        const outputPath = options.outputPath || DEFAULT_OUTPUT_PATH;
+        resolvedOutputPath = path.resolve(outputPath);
+        fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
+        fs.writeFileSync(resolvedOutputPath, JSON.stringify(buildData, null, 4));
+    }
 
     // Print summary
     const equipCount = Object.values(buildData.equipment).filter(Boolean).length;
@@ -681,7 +707,9 @@ async function extractWynnBuild(buildUrl, options = {}) {
     console.log(`   📊 ${statCount} detailed stats`);
     console.log(`   🔮 ${spellCount} spells/attacks`);
     console.log(`   🌳 ${activeAbil}/${totalAbil} abilities (active/total)`);
-    console.log(`   📄 File: ${resolvedOutputPath}`);
+    if (resolvedOutputPath) {
+        console.log(`   📄 File: ${resolvedOutputPath}`);
+    }
 
     return buildData;
     } catch (err) {
@@ -696,24 +724,118 @@ async function extractWynnBuild(buildUrl, options = {}) {
     }
 }
 
+async function extractBatch(options) {
+    const urls = readBatchUrls(options.batchPath);
+    if (urls.length === 0) {
+        throw new Error(`No URLs found in batch file: ${options.batchPath}`);
+    }
+
+    const outputPath = options.outputPath === DEFAULT_OUTPUT_PATH
+        ? DEFAULT_BATCH_OUTPUT_DIR
+        : options.outputPath;
+    const resolvedOutputPath = path.resolve(outputPath);
+    const writeCombinedJson = path.extname(resolvedOutputPath).toLowerCase() === '.json';
+
+    if (!writeCombinedJson) {
+        fs.mkdirSync(resolvedOutputPath, { recursive: true });
+    } else {
+        fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
+    }
+
+    const results = [];
+    for (const [index, url] of urls.entries()) {
+        console.log(`\nBatch ${index + 1}/${urls.length}`);
+
+        const itemOutputPath = writeCombinedJson
+            ? null
+            : path.join(resolvedOutputPath, getSafeOutputName(url, index));
+
+        try {
+            const build = await extractWynnBuild(url, {
+                ...options,
+                outputPath: itemOutputPath || DEFAULT_OUTPUT_PATH,
+                writeOutput: !writeCombinedJson
+            });
+            results.push({
+                ok: true,
+                url,
+                outputPath: itemOutputPath,
+                build
+            });
+        } catch (err) {
+            results.push({
+                ok: false,
+                url,
+                error: err.message
+            });
+            console.error(`Batch item failed: ${err.message}`);
+        }
+    }
+
+    const summary = {
+        meta: {
+            timestamp: new Date().toISOString(),
+            total: results.length,
+            succeeded: results.filter(r => r.ok).length,
+            failed: results.filter(r => !r.ok).length
+        },
+        results: writeCombinedJson
+            ? results
+            : results.map(({ build, ...result }) => result)
+    };
+
+    if (writeCombinedJson) {
+        fs.writeFileSync(resolvedOutputPath, JSON.stringify(summary, null, 4));
+        console.log(`\nBatch complete. Combined file: ${resolvedOutputPath}`);
+    } else {
+        const manifestPath = path.join(resolvedOutputPath, 'manifest.json');
+        fs.writeFileSync(manifestPath, JSON.stringify(summary, null, 4));
+        console.log(`\nBatch complete. Manifest: ${manifestPath}`);
+    }
+
+    if (summary.meta.failed > 0) {
+        throw new Error(`Batch completed with ${summary.meta.failed} failed extraction(s).`);
+    }
+
+    return summary;
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // Entry Point — expects CLI argument
 // ═══════════════════════════════════════════════════════════════════════
-let cliOptions;
-try {
-    cliOptions = parseCliArgs(process.argv.slice(2));
-} catch (err) {
-    console.error('❌ Argument error:', err.message);
-    printUsage();
-    process.exit(1);
+async function main(argv) {
+    let cliOptions;
+    try {
+        cliOptions = parseCliArgs(argv);
+    } catch (err) {
+        console.error('❌ Argument error:', err.message);
+        printUsage();
+        process.exit(1);
+    }
+
+    if (cliOptions.help) {
+        printUsage();
+        return;
+    }
+
+    if (cliOptions.batchPath) {
+        await extractBatch(cliOptions);
+    } else {
+        await extractWynnBuild(cliOptions.buildUrl, cliOptions);
+    }
 }
 
-if (cliOptions.help) {
-    printUsage();
-    process.exit(0);
+if (require.main === module) {
+    main(process.argv.slice(2)).catch(err => {
+        console.error('❌ Extraction error:', err.message);
+        process.exit(1);
+    });
 }
 
-extractWynnBuild(cliOptions.buildUrl, cliOptions).catch(err => {
-    console.error('❌ Extraction error:', err.message);
-    process.exit(1);
-});
+module.exports = {
+    DEFAULT_BUILD_URL,
+    extractBatch,
+    extractWynnBuild,
+    parseCliArgs,
+    validateBuildData
+};
