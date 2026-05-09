@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -135,13 +136,6 @@
             box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
         }
 
-        .row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 10px;
-            align-items: center;
-        }
-
         .actions {
             display: flex;
             flex-wrap: wrap;
@@ -261,6 +255,7 @@
         }
 
         @media (max-width: 860px) {
+
             header,
             main {
                 grid-template-columns: 1fr;
@@ -281,6 +276,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="app">
         <header>
@@ -291,31 +287,25 @@
                     <p class="subtitle">Cole um link do WynnBuilder, extraia a build e baixe o JSON.</p>
                 </div>
             </div>
-            <a class="github-link" href="https://github.com/RickkCastro/WynnExtractor" target="_blank" rel="noreferrer">GitHub</a>
+            <a class="github-link" href="https://github.com/RickkCastro/WynnExtractor" target="_blank"
+                rel="noreferrer">GitHub</a>
         </header>
 
         <main>
             <section class="extractor" aria-label="Extrator">
                 <div class="field">
                     <label for="buildUrl">Link da build</label>
-                    <input id="buildUrl" autocomplete="off" spellcheck="false" placeholder="https://wynnbuilder-beta.github.io/builder/#..." />
-                </div>
-
-                <div class="field">
-                    <label for="apiUrl">Endpoint da API</label>
-                    <div class="row">
-                        <input id="apiUrl" autocomplete="off" spellcheck="false" />
-                        <button class="secondary" id="saveApi" type="button">Salvar API</button>
-                    </div>
+                    <input id="buildUrl" autocomplete="off" spellcheck="false"
+                        placeholder="https://wynnbuilder-beta.github.io/builder/#..." />
                 </div>
 
                 <div class="actions">
-                    <button id="extract" type="button">Extrair JSON</button>
+                    <button id="extract" type="button">Pesquisar build</button>
                     <button class="secondary" id="download" type="button" disabled>Baixar JSON</button>
                     <button class="secondary" id="sample" type="button">Usar exemplo</button>
                 </div>
 
-                <div id="message" class="message">Na Vercel, a API roda automaticamente em <code>/api/extract</code>.</div>
+                <div id="message" class="message">Cole um link valido do WynnBuilder e pesquise a build.</div>
 
                 <div class="summary" aria-label="Resumo">
                     <div class="metric"><span>Classe</span><strong id="classMetric">-</strong></div>
@@ -332,24 +322,18 @@
                     <li id="checkHost">Dominio precisa ser WynnBuilder ou WynnBuilder Beta.</li>
                     <li id="checkPath">Caminho precisa comecar com <code>/builder/</code>.</li>
                     <li id="checkHash">Link precisa conter hash da build.</li>
-                    <li id="checkApi">API precisa terminar em <code>/extract</code>.</li>
                 </ul>
             </aside>
         </main>
     </div>
 
     <script>
-        const DEFAULT_BUILD_URL = 'https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEamWecKS230q-Kz7sNAI50';
-        const DEFAULT_API_URL = location.protocol === 'file:'
-            ? 'http://localhost:3000/extract'
-            : `${location.origin}/api/extract`;
+        const DEFAULT_BUILD_URL = '';
 
         const buildUrlInput = document.getElementById('buildUrl');
-        const apiUrlInput = document.getElementById('apiUrl');
         const extractButton = document.getElementById('extract');
         const downloadButton = document.getElementById('download');
         const sampleButton = document.getElementById('sample');
-        const saveApiButton = document.getElementById('saveApi');
         const message = document.getElementById('message');
         const classMetric = document.getElementById('classMetric');
         const equipmentMetric = document.getElementById('equipmentMetric');
@@ -357,8 +341,6 @@
         const statusMetric = document.getElementById('statusMetric');
 
         let extractedBuild = null;
-
-        apiUrlInput.value = localStorage.getItem('wynnextractor-api-url') || DEFAULT_API_URL;
 
         function setMessage(text, type) {
             message.textContent = text;
@@ -401,32 +383,19 @@
             return result;
         }
 
-        function validateApiUrl(value) {
-            try {
-                const parsed = new URL(value);
-                return ['http:', 'https:'].includes(parsed.protocol) && parsed.pathname.endsWith('/extract');
-            } catch (error) {
-                return false;
-            }
-        }
-
         function refreshValidation() {
             const buildValidation = validateBuildUrl(buildUrlInput.value.trim());
-            const apiOk = validateApiUrl(apiUrlInput.value.trim());
 
             setCheck('checkProtocol', buildValidation.protocol);
             setCheck('checkHost', buildValidation.host);
             setCheck('checkPath', buildValidation.path);
             setCheck('checkHash', buildValidation.hash);
-            setCheck('checkApi', apiOk);
 
-            extractButton.disabled = !(buildValidation.ok && apiOk);
+            extractButton.disabled = !buildValidation.ok;
             if (!buildValidation.ok && buildUrlInput.value.trim()) {
                 setMessage(buildValidation.error, 'error');
-            } else if (!apiOk) {
-                setMessage('Configure um endpoint de API valido terminado em /extract.', 'error');
             } else if (!extractedBuild) {
-                setMessage('Tudo pronto. Clique em Extrair JSON para gerar o arquivo.', '');
+                setMessage('Tudo pronto. Clique em Pesquisar build para gerar o JSON.', '');
             }
         }
 
@@ -454,14 +423,13 @@
 
         async function extractJson() {
             const buildUrl = buildUrlInput.value.trim();
-            const apiUrl = apiUrlInput.value.trim();
             extractedBuild = null;
             downloadButton.disabled = true;
             extractButton.disabled = true;
-            setMessage('Extraindo build. Isso pode levar alguns segundos...', '');
+            setMessage('Pesquisando build. Isso pode levar alguns segundos...', '');
 
             try {
-                const response = await fetch(apiUrl, {
+                const response = await fetch('/api/extract', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: buildUrl })
@@ -477,23 +445,17 @@
                 downloadButton.disabled = false;
                 setMessage('JSON gerado com sucesso. O download esta pronto.', 'good');
             } catch (error) {
-                setMessage(error.message || 'Nao foi possivel conectar na API.', 'error');
+                setMessage(error.message || 'Nao foi possivel pesquisar a build.', 'error');
             } finally {
                 refreshValidation();
             }
         }
 
         buildUrlInput.addEventListener('input', refreshValidation);
-        apiUrlInput.addEventListener('input', refreshValidation);
         extractButton.addEventListener('click', extractJson);
         downloadButton.addEventListener('click', downloadJson);
         sampleButton.addEventListener('click', () => {
             buildUrlInput.value = DEFAULT_BUILD_URL;
-            refreshValidation();
-        });
-        saveApiButton.addEventListener('click', () => {
-            localStorage.setItem('wynnextractor-api-url', apiUrlInput.value.trim());
-            setMessage('Endpoint da API salvo neste navegador.', 'good');
             refreshValidation();
         });
 
@@ -501,4 +463,5 @@
         refreshValidation();
     </script>
 </body>
+
 </html>
