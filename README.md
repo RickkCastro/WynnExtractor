@@ -81,6 +81,7 @@ npm test
 ```
 
 The integration test extracts the default build URL and verifies equipment, ability tree counts, selected ability names, and validation metadata.
+The batch test uses `test/fixtures/sample-urls.txt`, including both beta and non-beta WynnBuilder URLs.
 
 ## Scraper Technical Details
 Because WynnBuilder represents the build state by **decoding a Base64 encoded BitVector hash**, all of the "State" exists in the DOM and dynamic JS scripts (not in a clean JSON API).

@@ -1,0 +1,7 @@
+# Default Shaman build used by the integration test
+https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEamWecKS230q-Kz7sNAI50
+
+# Additional user-provided regression URLs
+https://wynnbuilder-beta.github.io/builder/#CT08+kvGlQZp3ZDE+QkvH0s1s1s1sH42sna2041O7O7O7O7H8O7JA00b7H27Zyk9lnFNe-ThbQg39C0
+https://wynnbuilder-beta.github.io/builder/#CT0-2HyGiK4VJnKEcoH15aGIFk6uqAWy0uzyYCflkEm6
+https://wynnbuilder.github.io/builder/#CN0TlWu4Ol3zT41c9c9h9h9h9h9m9IG4OcOcicicicic0d81GX92CJCJMJMJMJMJYJa0UrCo1L2G-uXfQb20

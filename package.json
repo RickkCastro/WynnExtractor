@@ -5,9 +5,10 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "npm run test:syntax && npm run test:integration",
+    "test": "npm run test:syntax && npm run test:integration && npm run test:batch",
+    "test:batch": "node test/batch.test.js",
     "test:integration": "node test/integration.test.js",
-    "test:syntax": "node --check app.js && node --check test/integration.test.js"
+    "test:syntax": "node --check app.js && node --check test/integration.test.js && node --check test/batch.test.js"
   },
   "keywords": [],
   "author": "",
