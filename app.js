@@ -288,19 +288,39 @@ async function extractWynnBuild(buildUrl) {
                 ? get_sorted_class_atree(ATREES, playerClass)
                 : classTree.map(a => ({ ability: a, children: [], parents: [] }));
 
-            // Determine active abilities using atree_data BitVector
-            // atree_data is set by the URL decoder: each bit = 1 if topo-order ability is active
+            // Determine selected abilities using WynnBuilder's own decoder.
+            // atree_data is encoded by tree traversal, not by topological index.
             const activeIds = new Set();
-            if (typeof atree_data !== 'undefined' && atree_data) {
-                sorted.forEach((node, idx) => {
-                    try {
-                        const bit = atree_data.read(idx, 1);
-                        if (bit === 1) activeIds.add(node.ability.id);
-                    } catch(e) { /* out of bounds = inactive */ }
-                });
+            if (
+                typeof decodeAtree === 'function' &&
+                typeof atree_data !== 'undefined' &&
+                atree_data &&
+                sorted.length > 0
+            ) {
+                try {
+                    decodeAtree(sorted, atree_data).forEach(node => {
+                        if (node?.ability?.id !== undefined) activeIds.add(node.ability.id);
+                    });
+                } catch(e) { /* fall back below */ }
             }
 
-            // If bitfield detection got too few results, fallback to text matching
+            // Fallback: read the rendered tree state directly when available.
+            // This captures selected nodes even when they are not shown in the
+            // merged "Active Abilities" panel.
+            if (activeIds.size < 3 && typeof atree_state_node !== 'undefined') {
+                try {
+                    const state = atree_state_node.value || atree_state_node._value || atree_state_node.result;
+                    if (state?.forEach) {
+                        state.forEach((node, id) => {
+                            if (node?.active) activeIds.add(id);
+                        });
+                    }
+                } catch(e) { /* fall back below */ }
+            }
+
+            // Final fallback: text matching against the rendered active panel.
+            // This panel is merged/incomplete, so use it only if decoder/state
+            // access failed.
             if (activeIds.size < 3 && activeText.length > 20) {
                 classTree.forEach(a => {
                     if (activeText.includes(a.display_name)) activeIds.add(a.id);
@@ -340,7 +360,7 @@ async function extractWynnBuild(buildUrl) {
                 totalAbilities: allAbilities.length,
                 activeCount: allAbilities.filter(a => a.active).length,
                 inactiveCount: allAbilities.filter(a => !a.active).length,
-                abilities: allAbilities
+                abilities: allAbilities.filter(a => a.active)
             };
         })();
 
