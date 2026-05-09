@@ -83,6 +83,27 @@ npm test
 The integration test extracts the default build URL and verifies equipment, ability tree counts, selected ability names, and validation metadata.
 The batch test uses `test/fixtures/sample-urls.txt`, including both beta and non-beta WynnBuilder URLs.
 
+## Web UI
+The static interface lives in `docs/index.html` and is ready for GitHub Pages. It lets users paste a WynnBuilder link, validates the URL, calls an extraction API, and downloads the generated JSON.
+
+GitHub Pages only hosts static files, so the Puppeteer extraction must run in a separate Node API. For local use:
+
+```bash
+npm run api
+```
+
+Then open `docs/index.html` or publish the `docs/` folder with GitHub Pages. The default API endpoint is:
+
+```text
+http://localhost:3000/extract
+```
+
+For a public deployment, host `server.js` on a Node-capable platform and set the API endpoint in the page. You can restrict browser origins with:
+
+```bash
+ALLOWED_ORIGINS=https://your-user.github.io npm run api
+```
+
 ## Scraper Technical Details
 Because WynnBuilder represents the build state by **decoding a Base64 encoded BitVector hash**, all of the "State" exists in the DOM and dynamic JS scripts (not in a clean JSON API).
 

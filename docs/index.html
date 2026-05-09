@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WynnExtractor</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f6f7f9;
+            --panel: #ffffff;
+            --panel-2: #eef3f1;
+            --ink: #17211f;
+            --muted: #5b6764;
+            --line: #d8dfdc;
+            --accent: #0f766e;
+            --accent-2: #2563eb;
+            --danger: #b42318;
+            --good: #067647;
+            --shadow: 0 18px 48px rgba(23, 33, 31, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 32rem),
+                linear-gradient(315deg, rgba(37, 99, 235, 0.10), transparent 30rem),
+                var(--bg);
+        }
+
+        .app {
+            width: min(1120px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 40px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mark {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border-radius: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            font-weight: 800;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(26px, 4vw, 44px);
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .github-link {
+            color: var(--accent);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        section,
+        aside {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.86);
+            box-shadow: var(--shadow);
+        }
+
+        .extractor {
+            padding: 22px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--ink);
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            min-height: 46px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 11px 12px;
+            color: var(--ink);
+            background: #fff;
+            font: inherit;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        button {
+            min-height: 42px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: #fff;
+            background: var(--accent);
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            color: var(--ink);
+            border-color: var(--line);
+            background: #fff;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .message {
+            min-height: 44px;
+            margin-top: 16px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 11px 12px;
+            color: var(--muted);
+            background: var(--panel-2);
+        }
+
+        .message.error {
+            color: var(--danger);
+            border-color: rgba(180, 35, 24, 0.26);
+            background: rgba(180, 35, 24, 0.08);
+        }
+
+        .message.good {
+            color: var(--good);
+            border-color: rgba(6, 118, 71, 0.24);
+            background: rgba(6, 118, 71, 0.08);
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .metric {
+            min-height: 82px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 12px;
+            background: #fff;
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 8px;
+            font-size: 22px;
+        }
+
+        aside {
+            padding: 18px;
+        }
+
+        aside h2 {
+            margin: 0 0 12px;
+            font-size: 18px;
+        }
+
+        .checks {
+            display: grid;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .checks li {
+            border-left: 3px solid var(--line);
+            padding: 8px 0 8px 10px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .checks li.ok {
+            border-color: var(--good);
+            color: var(--ink);
+        }
+
+        code {
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 2px 4px;
+            background: #fff;
+            font-size: 0.92em;
+        }
+
+        @media (max-width: 860px) {
+            header,
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <div class="brand">
+                <div class="mark">WX</div>
+                <div>
+                    <h1>WynnExtractor</h1>
+                    <p class="subtitle">Cole um link do WynnBuilder, extraia a build e baixe o JSON.</p>
+                </div>
+            </div>
+            <a class="github-link" href="https://github.com/RickkCastro/WynnExtractor" target="_blank" rel="noreferrer">GitHub</a>
+        </header>
+
+        <main>
+            <section class="extractor" aria-label="Extrator">
+                <div class="field">
+                    <label for="buildUrl">Link da build</label>
+                    <input id="buildUrl" autocomplete="off" spellcheck="false" placeholder="https://wynnbuilder-beta.github.io/builder/#..." />
+                </div>
+
+                <div class="field">
+                    <label for="apiUrl">Endpoint da API</label>
+                    <div class="row">
+                        <input id="apiUrl" autocomplete="off" spellcheck="false" />
+                        <button class="secondary" id="saveApi" type="button">Salvar API</button>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="extract" type="button">Extrair JSON</button>
+                    <button class="secondary" id="download" type="button" disabled>Baixar JSON</button>
+                    <button class="secondary" id="sample" type="button">Usar exemplo</button>
+                </div>
+
+                <div id="message" class="message">A API padrao local e <code>http://localhost:3000/extract</code>. Em GitHub Pages, publique tambem uma API Node para o Puppeteer.</div>
+
+                <div class="summary" aria-label="Resumo">
+                    <div class="metric"><span>Classe</span><strong id="classMetric">-</strong></div>
+                    <div class="metric"><span>Equipamentos</span><strong id="equipmentMetric">-</strong></div>
+                    <div class="metric"><span>Habilidades</span><strong id="abilityMetric">-</strong></div>
+                    <div class="metric"><span>Status</span><strong id="statusMetric">-</strong></div>
+                </div>
+            </section>
+
+            <aside aria-label="Validacoes">
+                <h2>Validacoes</h2>
+                <ul class="checks">
+                    <li id="checkProtocol">URL precisa usar HTTPS.</li>
+                    <li id="checkHost">Dominio precisa ser WynnBuilder ou WynnBuilder Beta.</li>
+                    <li id="checkPath">Caminho precisa comecar com <code>/builder/</code>.</li>
+                    <li id="checkHash">Link precisa conter hash da build.</li>
+                    <li id="checkApi">API precisa terminar em <code>/extract</code>.</li>
+                </ul>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        const DEFAULT_BUILD_URL = 'https://wynnbuilder-beta.github.io/builder/#CT013HxGyb0yQWT82eGnEamWecKS230q-Kz7sNAI50';
+        const DEFAULT_API_URL = 'http://localhost:3000/extract';
+
+        const buildUrlInput = document.getElementById('buildUrl');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const extractButton = document.getElementById('extract');
+        const downloadButton = document.getElementById('download');
+        const sampleButton = document.getElementById('sample');
+        const saveApiButton = document.getElementById('saveApi');
+        const message = document.getElementById('message');
+        const classMetric = document.getElementById('classMetric');
+        const equipmentMetric = document.getElementById('equipmentMetric');
+        const abilityMetric = document.getElementById('abilityMetric');
+        const statusMetric = document.getElementById('statusMetric');
+
+        let extractedBuild = null;
+
+        apiUrlInput.value = localStorage.getItem('wynnextractor-api-url') || DEFAULT_API_URL;
+
+        function setMessage(text, type) {
+            message.textContent = text;
+            message.className = `message ${type || ''}`.trim();
+        }
+
+        function setCheck(id, ok) {
+            document.getElementById(id).classList.toggle('ok', ok);
+        }
+
+        function validateBuildUrl(value) {
+            const result = {
+                ok: false,
+                protocol: false,
+                host: false,
+                path: false,
+                hash: false,
+                error: ''
+            };
+
+            let parsed;
+            try {
+                parsed = new URL(value);
+            } catch (error) {
+                result.error = 'Informe uma URL valida.';
+                return result;
+            }
+
+            result.protocol = parsed.protocol === 'https:';
+            result.host = ['wynnbuilder-beta.github.io', 'wynnbuilder.github.io'].includes(parsed.hostname);
+            result.path = parsed.pathname.startsWith('/builder/');
+            result.hash = parsed.hash.length > 10;
+            result.ok = result.protocol && result.host && result.path && result.hash;
+
+            if (!result.protocol) result.error = 'A URL precisa usar HTTPS.';
+            else if (!result.host) result.error = 'Use um link do WynnBuilder ou WynnBuilder Beta.';
+            else if (!result.path) result.error = 'O caminho precisa comecar com /builder/.';
+            else if (!result.hash) result.error = 'O link precisa conter a hash da build.';
+
+            return result;
+        }
+
+        function validateApiUrl(value) {
+            try {
+                const parsed = new URL(value);
+                return ['http:', 'https:'].includes(parsed.protocol) && parsed.pathname.endsWith('/extract');
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function refreshValidation() {
+            const buildValidation = validateBuildUrl(buildUrlInput.value.trim());
+            const apiOk = validateApiUrl(apiUrlInput.value.trim());
+
+            setCheck('checkProtocol', buildValidation.protocol);
+            setCheck('checkHost', buildValidation.host);
+            setCheck('checkPath', buildValidation.path);
+            setCheck('checkHash', buildValidation.hash);
+            setCheck('checkApi', apiOk);
+
+            extractButton.disabled = !(buildValidation.ok && apiOk);
+            if (!buildValidation.ok && buildUrlInput.value.trim()) {
+                setMessage(buildValidation.error, 'error');
+            } else if (!apiOk) {
+                setMessage('Configure um endpoint de API valido terminado em /extract.', 'error');
+            } else if (!extractedBuild) {
+                setMessage('Tudo pronto. Clique em Extrair JSON para gerar o arquivo.', '');
+            }
+        }
+
+        function updateSummary(build) {
+            const equipmentCount = Object.values(build.equipment || {}).filter(Boolean).length;
+            classMetric.textContent = build.abilityTree?.playerClass || '-';
+            equipmentMetric.textContent = String(equipmentCount);
+            abilityMetric.textContent = `${build.abilityTree?.activeCount || 0}/${build.abilityTree?.totalAbilities || 0}`;
+            statusMetric.textContent = build.meta?.validation?.ok ? 'OK' : 'Aviso';
+        }
+
+        function downloadJson() {
+            if (!extractedBuild) return;
+            const hash = (extractedBuild.meta?.buildHash || '#build').replace(/^#/, '').slice(0, 24);
+            const blob = new Blob([JSON.stringify(extractedBuild, null, 4)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `wynn-build-${hash}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        async function extractJson() {
+            const buildUrl = buildUrlInput.value.trim();
+            const apiUrl = apiUrlInput.value.trim();
+            extractedBuild = null;
+            downloadButton.disabled = true;
+            extractButton.disabled = true;
+            setMessage('Extraindo build. Isso pode levar alguns segundos...', '');
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: buildUrl })
+                });
+                const payload = await response.json();
+
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload.error || 'Falha ao extrair a build.');
+                }
+
+                extractedBuild = payload.build;
+                updateSummary(extractedBuild);
+                downloadButton.disabled = false;
+                setMessage('JSON gerado com sucesso. O download esta pronto.', 'good');
+            } catch (error) {
+                setMessage(error.message || 'Nao foi possivel conectar na API.', 'error');
+            } finally {
+                refreshValidation();
+            }
+        }
+
+        buildUrlInput.addEventListener('input', refreshValidation);
+        apiUrlInput.addEventListener('input', refreshValidation);
+        extractButton.addEventListener('click', extractJson);
+        downloadButton.addEventListener('click', downloadJson);
+        sampleButton.addEventListener('click', () => {
+            buildUrlInput.value = DEFAULT_BUILD_URL;
+            refreshValidation();
+        });
+        saveApiButton.addEventListener('click', () => {
+            localStorage.setItem('wynnextractor-api-url', apiUrlInput.value.trim());
+            setMessage('Endpoint da API salvo neste navegador.', 'good');
+            refreshValidation();
+        });
+
+        buildUrlInput.value = DEFAULT_BUILD_URL;
+        refreshValidation();
+    </script>
+</body>
+</html>
